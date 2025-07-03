@@ -187,7 +187,7 @@ class FAQManager:
                 return item.copy()
         return None
     
-    def add_faq_item(self, question: str, answer: str, keywords: List[str] = None) -> bool:
+    def add_faq_item(self, question: str, answer: str, keywords: Optional[List[str]] = None) -> bool:
         """
         Добавляет новую FAQ запись
         
@@ -200,15 +200,34 @@ class FAQManager:
             bool: True если добавление успешно
         """
         try:
+            # Валидация входных данных
+            if not question or not isinstance(question, str) or len(question.strip()) == 0:
+                logger.error("Вопрос не может быть пустым")
+                return False
+                
+            if not answer or not isinstance(answer, str) or len(answer.strip()) == 0:
+                logger.error("Ответ не может быть пустым")
+                return False
+            
+            # Очищаем и валидируем ключевые слова
+            if keywords is None:
+                keywords = []
+            elif not isinstance(keywords, list):
+                logger.error("Ключевые слова должны быть списком")
+                return False
+            else:
+                # Фильтруем валидные ключевые слова
+                keywords = [kw.strip() for kw in keywords if kw and isinstance(kw, str) and len(kw.strip()) > 0]
+            
             # Определяем новый ID
             max_id = max([item.get('id', 0) for item in self.faq_data], default=0)
             new_id = max_id + 1
             
             new_item = {
                 'id': new_id,
-                'question': question,
-                'answer': answer,
-                'keywords': keywords or []
+                'question': question.strip(),
+                'answer': answer.strip(),
+                'keywords': keywords
             }
             
             self.faq_data.append(new_item)
@@ -220,7 +239,7 @@ class FAQManager:
             logger.error(f"Ошибка добавления FAQ записи: {e}")
             return False
     
-    def update_faq_item(self, faq_id: int, question: str = None, answer: str = None, keywords: List[str] = None) -> bool:
+    def update_faq_item(self, faq_id: int, question: Optional[str] = None, answer: Optional[str] = None, keywords: Optional[List[str]] = None) -> bool:
         """
         Обновляет существующую FAQ запись
         

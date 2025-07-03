@@ -1,0 +1,30 @@
+# WhatsApp Business API Configuration
+# Получите эти данные в Facebook Developers Console
+WHATSAPP_TOKEN=your_whatsapp_business_api_token_here
+WHATSAPP_PHONE_NUMBER_ID=your_phone_number_id_here
+WEBHOOK_VERIFY_TOKEN=your_custom_webhook_verify_token_here
+
+# OpenAI API Configuration
+# Получите API ключ на https://platform.openai.com/
+OPENAI_API_KEY=your_openai_api_key_here
+
+# Flask Application Settings
+FLASK_PORT=5000
+FLASK_DEBUG=False
+
+# Logging Configuration
+LOG_LEVEL=INFO
+
+# File Paths (optional - defaults will be used if not set)
+FAQ_FILE_PATH=data/faq.json
+LOG_DIR=logs
+
+# OpenAI Model Settings (optional)
+OPENAI_MODEL=gpt-4o
+OPENAI_MAX_TOKENS=500
+OPENAI_TEMPERATURE=0.7
+
+# Bot Configuration (optional)
+MAX_FAQ_RESULTS=3
+MAX_MESSAGE_LENGTH=4096
+SESSION_TIMEOUT=3600

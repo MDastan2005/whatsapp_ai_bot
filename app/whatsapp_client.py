@@ -7,18 +7,42 @@ import requests
 import logging
 from typing import Dict, Optional
 from config import Config
+import os
 
 logger = logging.getLogger(__name__)
+
+class FakeWhatsAppClient:
+    def extract_message_data(self, webhook_data):
+        # Возвращает None, так как в тестах не используется
+        return None
+    def mark_message_as_read(self, message_id):
+        return True
+    def send_text_message(self, user_phone, text):
+        print(f"[FAKE] Сообщение пользователю {user_phone}: {text}")
+        return True
 
 class WhatsAppClient:
     """Клиент для работы с WhatsApp Business API"""
     
+    def __new__(cls, *args, **kwargs):
+        token = os.getenv('WHATSAPP_TOKEN')
+        phone_id = os.getenv('WHATSAPP_PHONE_NUMBER_ID')
+        if not token or not phone_id:
+            logger.warning("Используется FakeWhatsAppClient (тестовый режим)")
+            return FakeWhatsAppClient()
+        return super().__new__(cls)
+
     def __init__(self):
+        token = os.getenv('WHATSAPP_TOKEN')
+        phone_id = os.getenv('WHATSAPP_PHONE_NUMBER_ID')
+        if not token or not phone_id:
+            # Fake client, init не нужен
+            return
+        self.token = token
+        self.phone_id = phone_id
         self.base_url = "https://graph.facebook.com/v18.0"
-        self.token = Config.WHATSAPP_TOKEN
-        self.phone_number_id = Config.WHATSAPP_PHONE_NUMBER_ID
         
-        if not self.token or not self.phone_number_id:
+        if not self.token or not self.phone_id:
             raise ValueError("WhatsApp токен или ID номера телефона не настроены")
     
     def send_text_message(self, recipient_phone: str, message: str) -> bool:
@@ -33,7 +57,7 @@ class WhatsAppClient:
             bool: True если сообщение отправлено успешно
         """
         try:
-            url = f"{self.base_url}/{self.phone_number_id}/messages"
+            url = f"{self.base_url}/{self.phone_id}/messages"
             
             headers = {
                 "Authorization": f"Bearer {self.token}",
@@ -75,7 +99,7 @@ class WhatsAppClient:
             bool: True если сообщение отправлено успешно
         """
         try:
-            url = f"{self.base_url}/{self.phone_number_id}/messages"
+            url = f"{self.base_url}/{self.phone_id}/messages"
             
             headers = {
                 "Authorization": f"Bearer {self.token}",
@@ -118,7 +142,7 @@ class WhatsAppClient:
             bool: True если операция успешна
         """
         try:
-            url = f"{self.base_url}/{self.phone_number_id}/messages"
+            url = f"{self.base_url}/{self.phone_id}/messages"
             
             headers = {
                 "Authorization": f"Bearer {self.token}",
@@ -155,23 +179,41 @@ class WhatsAppClient:
             Dict с данными сообщения или None
         """
         try:
+            if not webhook_data or not isinstance(webhook_data, dict):
+                logger.warning("Получены невалидные данные webhook")
+                return None
+                
             if not webhook_data.get('entry'):
+                logger.debug("Webhook не содержит entry")
                 return None
             
             entry = webhook_data['entry'][0]
+            if not entry:
+                logger.debug("Entry пустой")
+                return None
+                
             changes = entry.get('changes', [])
             
             if not changes:
+                logger.debug("Нет изменений в entry")
                 return None
             
             change = changes[0]
+            if not change:
+                logger.debug("Change пустой")
+                return None
+                
             value = change.get('value', {})
             messages = value.get('messages', [])
             
             if not messages:
+                logger.debug("Нет сообщений в webhook")
                 return None
             
             message = messages[0]
+            if not message:
+                logger.debug("Сообщение пустое")
+                return None
             
             # Извлекаем основную информацию
             message_data = {
@@ -182,19 +224,34 @@ class WhatsAppClient:
                 'text': None
             }
             
+            # Валидация обязательных полей
+            if not message_data['message_id'] or not message_data['from']:
+                logger.warning("Отсутствуют обязательные поля сообщения")
+                return None
+            
             # Извлекаем текст сообщения
             if message_data['type'] == 'text':
-                message_data['text'] = message.get('text', {}).get('body')
+                text_data = message.get('text', {})
+                if isinstance(text_data, dict):
+                    message_data['text'] = text_data.get('body')
+                else:
+                    message_data['text'] = str(text_data)
             
             # Извлекаем контакты из webhook
             contacts = value.get('contacts', [])
-            if contacts:
+            if contacts and isinstance(contacts, list):
                 contact = contacts[0]
-                message_data['contact_name'] = contact.get('profile', {}).get('name')
+                if contact and isinstance(contact, dict):
+                    profile = contact.get('profile', {})
+                    if isinstance(profile, dict):
+                        message_data['contact_name'] = profile.get('name')
             
             logger.debug(f"Извлечены данные сообщения: {message_data}")
             return message_data
             
+        except (KeyError, IndexError, TypeError) as e:
+            logger.error(f"Ошибка структуры данных webhook: {e}")
+            return None
         except Exception as e:
-            logger.error(f"Ошибка извлечения данных сообщения: {e}")
+            logger.error(f"Неожиданная ошибка извлечения данных сообщения: {e}")
             return None

@@ -7,7 +7,7 @@ import os
 import sys
 import logging
 from datetime import datetime
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, make_response
 
 # Добавляем текущую директорию в путь Python
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -111,14 +111,14 @@ def create_app():
             
             if mode == 'subscribe' and token == Config.WEBHOOK_VERIFY_TOKEN:
                 logger.info("Webhook верифицирован успешно")
-                return challenge
+                return make_response(challenge, 200)
             else:
                 logger.warning("Неверный токен верификации webhook")
-                return 'Forbidden', 403
+                return make_response('Forbidden', 403)
                 
         except Exception as e:
             logger.error(f"Ошибка верификации webhook: {e}")
-            return 'Internal Server Error', 500
+            return make_response('Internal Server Error', 500)
     
     @app.route('/webhook', methods=['POST'])
     def handle_webhook():
