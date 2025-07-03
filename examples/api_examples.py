@@ -182,28 +182,10 @@ if __name__ == "__main__":
     example_curl_commands()
     example_webhook_verification()
     
-    print("\n=== Автоматический тест бота ===")
-    from app.bot import WhatsAppBot
-    bot = WhatsAppBot()
-    test_questions = [
-        "Как оформить заказ?",
-        "Можете рассказать, как у вас происходит оформление заказа?",
-        "Какие способы оплаты вы принимаете?",
-        "Сколько стоит доставка?",
-        "Что делать, если товар не подошёл?",
-        "Расскажите о гарантии на продукцию.",
-        "Какой у вас адрес?",
-        "Какой у вас график работы?",
-        "Как мне вернуть товар?",
-        "У вас есть скидки для постоянных клиентов?"
-    ]
-    for q in test_questions:
-        print(f"\nВы: {q}")
-        response = bot._process_user_message("79991234567", q, "Тестовый Пользователь")
-        print("Бот:", response)
-
     print("\n=== Интерактивный тест бота ===")
     print("Введите вопрос (или 'exit' для выхода):")
+    from app.bot import WhatsAppBot
+    bot = WhatsAppBot()
     while True:
         user_question = input("Вы: ")
         if user_question.lower() in ("exit", "quit"): break
